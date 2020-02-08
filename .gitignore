@@ -117,4 +117,5 @@ models.py
 *.csv
 *.chkpt
 *.png
+*.html
 .Rproj.user
