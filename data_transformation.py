@@ -47,8 +47,8 @@ class data_transformation():
         os.chdir('..')
         current_path = os.getcwd()
         data = pd.read_csv(current_path + self.path_data)
-        mhc_data = pd.read_csv(current_path + self.path_mhc).loc[:, ["allele", "mhc_sequence"]]
-        joined_data = pd.merge(data, mhc_data, left_on = "original_allele", right_on = "allele", how='inner').drop(["allele_y", "original_allele"], axis = 1)
+        mhc_data = pd.read_csv(current_path + self.path_mhc).loc[:, ["normalized_allele", "mhc_sequence"]]
+        joined_data = pd.merge(data, mhc_data, left_on = "allele", right_on = "normalized_allele", how='inner').drop(["original_allele"], axis = 1)
         os.chdir(cwd) 
         return joined_data
     
@@ -59,7 +59,7 @@ class data_transformation():
             data = self.read_data()
         else:
             data = self.read_data()
-            data = data[data.allele_x == self.allele_name]
+            data = data[data.allele == self.allele_name]
         if self.quant_data:
             data = data[data.measurement_type == "quantitative"].reset_index(drop = True)
         else:
@@ -141,8 +141,8 @@ class data_class_test(unittest.TestCase):
     
     def test_getitem(self):
         peptide_seq, mhc_sequence, target, dbscan = self.class_data.__getitem__()
-        self.assertEqual(peptide_seq.shape, (11705, 34, 20))
-        self.assertEqual(mhc_sequence.shape, (11705, 34, 20))
+        self.assertEqual(peptide_seq.shape, (11732, 34, 20))
+        self.assertEqual(mhc_sequence.shape, (11732, 34, 20))
         
 if __name__ == "__main__":
     unittest.main(argv=[''], verbosity=2, exit=False)
