@@ -21,20 +21,18 @@ class convnet(nn.Module):
         self.L = L
         self.inputchannel = inputchannel
         self.dropout = dropout
-        self.conv1 = nn.Conv2d(self.inputchannel * 2, 40 , 3, stride=(1,1), padding=(1,1), dilation=(1,1), bias=False)
+        self.conv1 = nn.Conv2d(self.inputchannel * 2, 40 , 3, stride=(1,1), padding=(1,1), dilation=(1,1))
         self.conv1_bn = nn.BatchNorm2d(40)
-        self.conv2 = nn.Conv2d(40, 100, 3, stride=(1,1), padding=(1,1), dilation=(1,1), bias=False)
-        self.conv2_bn = nn.BatchNorm2d(100)
-        self.conv3 = nn.Conv2d(100, 100, 3, stride=(1,1), padding=(1,1), dilation=(1,1), bias=False)
-        self.conv3_bn = nn.BatchNorm2d(100)
-        self.conv4 = nn.Conv2d(100, 50, 5, stride=(1,1), padding=(2,2), dilation=(1,1), bias=False)
-        self.conv4_bn = nn.BatchNorm2d(50)
-        self.conv5 = nn.Conv2d(50, 1, 3, stride=(1,1), padding=(1,1), dilation=(1,1), bias=False)
-        self.conv5_bn = nn.BatchNorm2d(1)
+        self.conv2 = nn.Conv2d(40, 50, 3, stride=(1,1), padding=(1,1), dilation=(1,1))
+        self.conv2_bn = nn.BatchNorm2d(50)
+        self.conv3 = nn.Conv2d(50, 30, 5, stride=(1,1), padding=(2,2), dilation=(1,1))
+        self.conv3_bn = nn.BatchNorm2d(30)
+        self.conv4 = nn.Conv2d(30, 1, 3, stride=(1,1), padding=(1,1), dilation=(1,1))
+        self.conv4_bn = nn.BatchNorm2d(1)
 
         self.L1 = nn.Linear(self.L * self.L, 1)
-        self.dropout = nn.Dropout(self.dropout)
-        self.dropoutearly = nn.Dropout(0.0)
+        self.dropout = nn.Dropout2d(self.dropout)
+        self.dropoutearly = nn.Dropout2d(0.0)
         #self.dropout = nn.Dropout2d(0.1) #2d use lower dropout because of spatial 
         
     def forward(self, inp): 
@@ -54,11 +52,9 @@ class convnet(nn.Module):
         x = self.conv2(x)
         x = self.dropoutearly(F.relu(self.conv2_bn(x)))
         x = self.conv3(x)
-        x = self.dropoutearly(F.relu(self.conv3_bn(x)))  
+        x = self.dropout(F.relu(self.conv3_bn(x)))  
         x = self.conv4(x)        
-        x = self.dropout(F.relu(self.conv4_bn(x))) 
-        x = self.conv5(x)        
-        x = self.dropout(F.relu(self.conv5_bn(x))) 
+        x = self.dropout(F.relu(self.conv4_bn(x)))  
         x = x.view(-1, self.num_flat_features(x))
         x = self.L1(x)
         return x

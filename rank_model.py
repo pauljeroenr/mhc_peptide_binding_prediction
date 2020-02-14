@@ -21,7 +21,7 @@ def root_mean_squared(data, allele_name, modelname):
     error = data.pred - data.true
     error2 = np.square(error)
     rmse = np.sqrt(np.mean(error2))
-    return({allele_name + modelname: rmse})
+    return({allele_name + modelname: rmse}, {allele_name + modelname: len(data)})
 
 # need to change weight name in mhc flurry library to work on windows
 def mhcflurry_test(data, allele_name):
