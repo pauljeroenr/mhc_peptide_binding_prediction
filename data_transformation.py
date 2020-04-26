@@ -46,8 +46,9 @@ class data_transformation():
         os.chdir('..')
         os.chdir('..')
         current_path = os.getcwd()
+        #print(current_path)
         data = pd.read_csv(current_path + self.path_data)
-        mhc_data = pd.read_csv(current_path + self.path_mhc).loc[:, ["normalized_allele", "mhc_sequence"]]
+        mhc_data = pd.read_csv(current_path + self.path_mhc).loc[:, ["normalized_allele", "mhc_sequence"]].drop_duplicates().reset_index(drop = True)
         joined_data = pd.merge(data, mhc_data, left_on = "allele", right_on = "normalized_allele", how='inner').drop(["original_allele"], axis = 1)
         os.chdir(cwd) 
         return joined_data
@@ -104,7 +105,8 @@ class data_transformation():
         data = self.filter_data()
         peptide_sequence = []
         mhc_sequence = []
-        max_sequence = len(max(max(data.mhc_sequence.values, key=len), max(data.peptide.values, key=len)))
+        #max_sequence = len(max(max(data.mhc_sequence.values, key=len), max(data.peptide.values, key=len)))
+        max_sequence = 34
         output_array_mhc = np.zeros((len(data), max_sequence, 20), dtype = np.uint8)
         output_array_peptide = np.zeros((len(data), max_sequence, 20), dtype = np.uint8)
         for i in range(len(data)):

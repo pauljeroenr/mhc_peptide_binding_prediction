@@ -18,9 +18,7 @@ def reverse_log_transformation(y):
 def root_mean_squared(data, allele_name, modelname):
     '''input data as dataframe containing column pred and true
        input allele_name - name of the allele as string'''
-    error = data.pred - data.true
-    error2 = np.square(error)
-    rmse = np.sqrt(np.mean(error2))
+    rmse = np.sqrt(np.mean((data.pred-data.true)**2))
     return({allele_name + modelname: rmse}, {allele_name + modelname: len(data)})
 
 # need to change weight name in mhc flurry library to work on windows

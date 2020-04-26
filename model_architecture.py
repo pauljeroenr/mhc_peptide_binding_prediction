@@ -126,8 +126,8 @@ class conv3x3(nn.Module):
         self.conv7_bn = nn.BatchNorm2d(1)
 
         self.L1 = nn.Linear(self.L * self.L, 1)
-        self.dropout = nn.Dropout(self.dropout)
-        self.dropoutearly = nn.Dropout(self.dropoutearly)
+        self.dropout = nn.Dropout2d(self.dropout)
+        self.dropoutearly = nn.Dropout2d(self.dropoutearly)
         #self.dropout = nn.Dropout2d(0.1) #2d use lower dropout because of spatial 
         
     def forward(self, inp): 
@@ -167,6 +167,71 @@ class conv3x3(nn.Module):
             num_features *= s
         return num_features
 
+class conv5x5(nn.Module):
+    def __init__(self, inputchannel, L, dropout, dropoutearly):
+
+        super(conv5x5, self).__init__()    
+        self.L = L
+        self.inputchannel = inputchannel
+        self.dropout = dropout
+        self.dropoutearly = dropoutearly
+
+        self.conv1 = nn.Conv2d(self.inputchannel * 2, self.inputchannel * 2, 5, stride=(2,2), padding=(1,1), dilation=(1,1), bias=False)
+        self.conv1_bn = nn.BatchNorm2d(self.inputchannel * 2)
+        self.conv2 = nn.Conv2d(self.inputchannel * 2, self.inputchannel * 2, 5, stride=(2,2), padding=(1,1), dilation=(1,1), bias=False)
+        self.conv2_bn = nn.BatchNorm2d(self.inputchannel * 2)
+        self.conv3 = nn.Conv2d(self.inputchannel * 2, self.inputchannel * 2, 5, stride=(2,2), padding=(1,1), dilation=(1,1), bias=False)
+        self.conv3_bn = nn.BatchNorm2d(self.inputchannel * 2)
+        self.conv4 = nn.Conv2d(self.inputchannel * 2, self.inputchannel * 2, 5, stride=(2,2), padding=(1,1), dilation=(1,1), bias=False)
+        self.conv4_bn = nn.BatchNorm2d(self.inputchannel * 2)
+        self.conv5 = nn.Conv2d(self.inputchannel * 2, self.inputchannel * 2, 5, stride=(2,2), padding=(1,1), dilation=(1,1), bias=False)
+        self.conv5_bn = nn.BatchNorm2d(self.inputchannel * 2)
+        self.conv6 = nn.Conv2d(self.inputchannel * 2, self.inputchannel * 2, 5, stride=(2,2), padding=(1,1), dilation=(1,1), bias=False)
+        self.conv6_bn = nn.BatchNorm2d(self.inputchannel * 2)
+        self.conv7 = nn.Conv2d(self.inputchannel * 2, 1, 5, stride=(2,2), padding=(1,1), dilation=(1,1), bias=False)
+        self.conv7_bn = nn.BatchNorm2d(1)
+
+        self.L1 = nn.Linear(self.L * self.L, 1)
+        self.dropout = nn.Dropout2d(self.dropout)
+        self.dropoutearly = nn.Dropout2d(self.dropoutearly)
+        #self.dropout = nn.Dropout2d(0.1) #2d use lower dropout because of spatial 
+        
+    def forward(self, inp): 
+        pep = inp[:, 0, :]
+        mhc = inp[:, 1, :]
+        #print(mhc.size(), pep.size())
+        sa = pep.permute(0,2,1).unsqueeze(3)
+        sb = mhc.permute(0,2,1).unsqueeze(2)
+        ones = torch.ones_like(sa)
+        ones_t = torch.ones_like(sb)
+        s = torch.mul(sa, ones_t)
+        s_t = torch.mul(sb, ones)
+        x_comp = torch.cat((s, s_t), dim=1)
+        #print(x_comp.size())
+        x = self.conv1(x_comp)
+        x = self.dropoutearly(F.relu(self.conv1_bn(x)))
+        x = self.conv2(x)
+        x = self.dropoutearly(F.relu(self.conv2_bn(x)))
+        x = self.conv3(x)
+        x = self.dropoutearly(F.relu(self.conv3_bn(x)))  
+        x = self.conv4(x)        
+        x = self.dropout(F.relu(self.conv4_bn(x))) 
+        x = self.conv5(x)        
+        x = self.dropout(F.relu(self.conv5_bn(x))) 
+        x = self.conv6(x)        
+        x = self.dropout(F.relu(self.conv6_bn(x))) 
+        x = self.conv7(x)   
+        x = self.dropout(F.relu(self.conv7_bn(x))) 
+        x = x.view(-1, self.num_flat_features(x))
+        x = self.L1(x)
+        return x
+
+    def num_flat_features(self, x):
+        size = x.size()[1:]  # all dimensions except the batch dimension
+        num_features = 1
+        for s in size:
+            num_features *= s
+        return num_features    
 
 # In[6]:
 
@@ -273,3 +338,50 @@ class ResNet(nn.Module):
         out = self.linear(out)
         return out
 
+class ResNet_wide(nn.Module):
+    def __init__(self, inputchannel, block, num_blocks, num_classes=1, dropout = 0):
+        super(ResNet_wide, self).__init__()
+        self.dropout = dropout
+        self.in_planes = 64
+        self.inputchannel = inputchannel
+
+        self.conv1 = nn.Conv2d(self.inputchannel * 2, 64, kernel_size=5, stride=1, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.layer1 = self._make_layer(block, 128, num_blocks[0], stride=1, dropout = self.dropout)
+        self.layer2 = self._make_layer(block, 256, num_blocks[1], stride=2, dropout = self.dropout)
+        self.linear = nn.Linear(65536*block.expansion, num_classes)
+
+    def _make_layer(self, block, planes, num_blocks, stride, dropout):
+        strides = [stride] + [1]*(num_blocks-1)
+        layers = []
+        for stride in strides:
+            layers.append(block(self.in_planes, planes, stride, dropout_value = self.dropout))
+            self.in_planes = planes * block.expansion
+        return nn.Sequential(*layers)
+
+    def forward(self, inp):
+        pep = inp[:, 0, :]
+        mhc = inp[:, 1, :]
+        #print(mhc.size(), pep.size())
+        sa = pep.permute(0,2,1).unsqueeze(3)
+        sb = mhc.permute(0,2,1).unsqueeze(2)
+        ones = torch.ones_like(sa)
+        ones_t = torch.ones_like(sb)
+        s = torch.mul(sa, ones_t)
+        s_t = torch.mul(sb, ones)
+        x_comp = torch.cat((s, s_t), dim=1)
+        #print(x_comp.size())
+        out = F.relu(self.bn1(self.conv1(x_comp)))
+        out = self.layer1(out)
+        out = self.layer2(out)
+        #out = F.avg_pool2d(out, 4)
+        out = out.view(-1, self.num_flat_features(out))
+        out = self.linear(out)
+        return out
+
+    def num_flat_features(self, x):
+        size = x.size()[1:]  # all dimensions except the batch dimension
+        num_features = 1
+        for s in size:
+            num_features *= s
+        return num_features
